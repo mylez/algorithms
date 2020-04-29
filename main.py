@@ -3,7 +3,7 @@ from random import randint
 import graph
 import priority_queue
 
-adj_list, weights = graph.weighted({
+adj, weights = graph.weighted({
     's': [('a', 2), ('b', 2), ('c', 4)],
     'a': [('c', 2), ('s', 2)],
     'b': [('c', 2), ('s', 2)],
@@ -13,7 +13,25 @@ adj_list, weights = graph.weighted({
     'f': [('c', 3), ('d', 1), ('e', 1)]
 })
 
-adj_list, weights = graph.weighted({
+
+g = graph.Graph({
+    'a': ['b'],
+    'b': ['c', 'd', 'e'],
+    'c': ['f'],
+    'd': [],
+    'e': ['b', 'f', 'g'],
+    'f': ['c', 'h'],
+    'g': ['h', 'j'],
+    'h': ['k'],
+    'i': ['g'],
+    'j': ['i'],
+    'k': ['l'],
+    'l': ['j']
+})
+
+print(g.decompose())
+
+adj, weights = graph.weighted({
     'a': [('b', 1), ('e', 10)],
     'b': [('a', 1), ('c', 4)],
     'c': [('b', 4), ('d', 7)],
@@ -21,7 +39,7 @@ adj_list, weights = graph.weighted({
     'e': [('d', 2), ('a', 10)],
 })
 
-g = graph.Graph(adj_list, weights)
+g = graph.Graph(adj, weights)
 s = 'a'
 
 print('dijkstra:')

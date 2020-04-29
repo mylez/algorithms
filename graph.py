@@ -4,58 +4,62 @@ import priority_queue
 INF = float('infinity')
 
 
-def weighted(adj_list_w):
-    adj_list = {}
+def weighted(adj_w):
+    adj = {}
     weights = {}
 
-    for u in adj_list_w:
-        adj_list[u] = []
-        for (v, w) in adj_list_w[u]:
-            adj_list[u].append(v)
+    for u in adj_w:
+        adj[u] = []
+        for (v, w) in adj_w[u]:
+            adj[u].append(v)
             weights[(u, v)] = w
-    return adj_list, weights
+    return adj, weights
 
 
 class Graph:
 
-    def __init__(self, adj_list=None, weights=None):
+    def __init__(self, adj=None, weights=None):
 
-        self.vertices = sorted(adj_list)
-        self.adj_list = {u: sorted(adj_list[u]) for u in adj_list}
+        if adj is None:
+            adj = {}
 
-        if adj_list is None:
-            adj_list = {}
+        if weights is None:
+            weights = {}
+            for u in adj:
+                for v in adj[u]:
+                    weights[(u, v)] = 1
 
+        self.adj = {u: sorted(adj[u]) for u in adj}
         self.weights = weights
-
-    def explore(self, u, count, pre, post, prev, visited):
-
-        visited.add(u)
-        pre[u] = count
-        count += 1
-
-        for v in self.adj_list[u]:
-            if not v in visited:
-                prev[v] = u
-                count = self.explore(v, count, pre, post, prev, visited)
-
-        post[u] = count
-        count += 1
-
-        return count
+        self.vertices = sorted(adj)
 
     def dfs(self):
         count = 1
         pre = {u: -1 for u in self.vertices}
         post = {u: -1 for u in self.vertices}
         prev = {u: None for u in self.vertices}
-        visited = set()
+        post_order = []
 
         for u in self.vertices:
-            if not u in visited:
-                self.explore(u, count, pre, post, prev, visited)
+            if pre[u] < 0:
+                self.explore(u, count, pre, post, prev, post_order)
 
-        return count, pre, post, visited
+        return count, pre, post, prev, post_order
+
+    def explore(self, u, count, pre, post, prev, post_order):
+        pre[u] = count
+        count += 1
+
+        for v in self.adj[u]:
+            if pre[v] < 0:
+                prev[v] = u
+                count = self.explore(v, count, pre, post, prev, post_order)
+
+        post_order.append(u)
+        post[u] = count
+        count += 1
+
+        return count
 
     def bfs(self, s):
         dist = {u: INF for u in self.vertices}
@@ -67,7 +71,7 @@ class Graph:
 
         while len(queue):
             u = queue.pop(0)
-            for v in self.adj_list[u]:
+            for v in self.adj[u]:
                 if not v in visited:
                     visited.add(v)
                     prev[v] = u
@@ -75,6 +79,27 @@ class Graph:
                     queue.append(v)
 
         return visited, prev, dist
+
+    def dijkstra(self, s):
+        prev = {u: None for u in self.vertices}
+        dist = {u: INF for u in self.vertices}
+        dist[s] = 0
+
+        h = priority_queue.PriorityQueue(lambda u, v: dist[u] < dist[v])
+
+        for u in self.vertices:
+            h.push(u)
+
+        while h.size():
+            u = h.pop()
+            for v in self.adj[u]:
+                w = self.weights[(u, v)] + dist[u]
+                if w < dist[v]:
+                    dist[v] = w
+                    prev[v] = u
+                    h.update(v)
+
+        return prev, dist
 
     def dijkstra_modified(self, s):
         prev = {u: None for u in self.vertices}
@@ -96,7 +121,7 @@ class Graph:
 
         while h.size():
             u = h.pop()
-            for v in self.adj_list[u]:
+            for v in self.adj[u]:
                 d_w = self.weights[(u, v)] + dist_w[u]
                 d_u = 1 + dist_u[u]
                 if (d_w < dist_w[v]) or (d_w == dist_w[v] and d_u < dist_u[v]):
@@ -107,24 +132,25 @@ class Graph:
 
         return prev, dist_w, dist_u
 
-    def dijkstra(self, s):
-        prev = {u: None for u in self.vertices}
-        dist = {u: INF for u in self.vertices}
-        dist[s] = 0
+    def decompose(self):
+        _, _, _, _, post_order = self.reverse().dfs()
+        pre = {u: -1 for u in self.vertices}
+        components = []
 
-        h = priority_queue.PriorityQueue(lambda u, v: dist[u] < dist[v])
+        for u in reversed(post_order):
+            if pre[u] < 0:
+                explored = []
+                self.explore(u, 1, pre, {}, {}, explored)
+                components.append(sorted(explored))
+
+        return components
+
+    def reverse(self):
+        adj = {u: [] for u in self.vertices}
+        weights = {(v, u): self.weights[(u, v)] for (u, v) in self.weights}
 
         for u in self.vertices:
-            h.push(u)
+            for v in self.adj[u]:
+                adj[v].append(u)
 
-        while h.size():
-            u = h.pop()
-            for v in self.adj_list[u]:
-                w = self.weights[(u, v)] + dist[u]
-                if w < dist[v]:
-                    dist[v] = w
-                    prev[v] = u
-                    h.update(v)
-
-        return prev, dist
-
+        return Graph(adj, weights)
