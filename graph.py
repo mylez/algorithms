@@ -1,4 +1,5 @@
 import priority_queue
+import graphviz
 
 
 INF = float('infinity')
@@ -101,6 +102,22 @@ class Graph:
 
         return prev, dist
 
+    def best_shortest_paths(self, s):
+        _, dist = self.dijkstra(s)
+
+        adj = {u: [] for u in self.vertices}
+        weights = {}
+
+        for u in self.adj:
+            for v in self.adj[u]:
+                if dist[u] + self.weights[(u, v)] == dist[v]:
+                    adj[u].append(v)
+                    weights[(u, v)] = self.weights[(u, v)]
+
+        _, _, dist = Graph(adj, weights).bfs(s)
+
+        return dist
+
     def dijkstra_modified(self, s):
         prev = {u: None for u in self.vertices}
         dist_w = {u: INF for u in self.vertices}
@@ -154,3 +171,11 @@ class Graph:
                 adj[v].append(u)
 
         return Graph(adj, weights)
+
+    def render(self):
+        digraph = graphviz.Digraph()
+        for u in self.vertices:
+            digraph.node(u)
+            for v in self.adj[u]:
+                digraph.edge(u, v, label=str(self.weights[(u, v)]))
+        digraph.render(view=True)
